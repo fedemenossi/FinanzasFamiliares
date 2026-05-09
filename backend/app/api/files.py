@@ -2,6 +2,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -63,6 +64,19 @@ async def upload_statement(
         created: list[Transaction] = []
         for parsed in statement.transactions:
             normalized = normalize_description(parsed.raw_description)
+            duplicate = db.scalar(
+                select(Transaction.id).where(
+                    Transaction.user_id == current_user.id,
+                    Transaction.transaction_date == parsed.transaction_date,
+                    Transaction.normalized_description == normalized,
+                    Transaction.amount == parsed.amount,
+                    Transaction.bank_name == statement.bank_name,
+                    Transaction.card_type == statement.card_type,
+                )
+            )
+            if duplicate:
+                continue
+
             classification = classify(normalized, parsed.is_installment)
             category = get_category_by_name(db, current_user.id, classification.category_name)
             transaction = Transaction(

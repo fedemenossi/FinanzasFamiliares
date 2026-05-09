@@ -1,18 +1,19 @@
 # Asistente Financiero Familiar IA
 
-MVP funcional para procesar resúmenes bancarios argentinos, clasificar gastos familiares y mostrar un dashboard financiero. Incluye backend FastAPI, frontend Streamlit, MySQL 8, SQLAlchemy 2.x, Alembic, parsers PDF y Docker.
+MVP funcional para procesar resumenes bancarios argentinos, clasificar gastos familiares y mostrar un dashboard financiero. Incluye backend FastAPI, frontend Streamlit, MySQL 8, SQLAlchemy 2.x, Alembic, parsers PDF y Docker.
 
 ## Funcionalidades
 
-- Registro, login y autenticación JWT.
+- Registro, login y autenticacion JWT.
 - Subida de PDFs bancarios.
-- Detección automática de BBVA Visa Platinum, Banco Nación Visa Signature o parser Visa genérico.
-- Extracción de movimientos, importes argentinos y cuotas.
-- Clasificación automática por reglas.
+- Deteccion automatica de BBVA Visa Platinum, Banco Nacion Visa Signature o parser Visa generico.
+- Extraccion de movimientos, importes argentinos y cuotas.
+- Clasificacion automatica por reglas.
 - Gastos fijos, variables y excepcionales.
 - Registro manual de ingresos y gastos.
-- Panel de movimientos con búsqueda y reclasificación.
-- Dashboard con KPIs, categorías, evolución mensual, fijos vs variables, top gastos y comercios frecuentes.
+- Panel de movimientos con busqueda y reclasificacion.
+- Dashboard con KPIs, categorias, evolucion mensual, fijos vs variables, top gastos y comercios frecuentes.
+- Fase 2: presupuestos mensuales por categoria, insights automaticos y deduplicacion al reimportar movimientos.
 
 ## Estructura
 
@@ -34,13 +35,13 @@ docker-compose.yml
 
 ## Deploy en Railway
 
-Este proyecto está preparado para desplegarse como monorepo con dos servicios Railway y una base MySQL.
+Este proyecto esta preparado para desplegarse como monorepo con dos servicios Railway y una base MySQL.
 
 ### 1. Crear proyecto y base
 
 1. Crear un proyecto nuevo en Railway.
 2. Agregar un servicio MySQL.
-3. Railway expondrá una variable tipo `MYSQL_URL`. El backend la acepta automáticamente y la convierte al driver `mysql+pymysql`.
+3. Railway expondra una variable tipo `MYSQL_URL`. El backend la acepta automaticamente y la convierte al driver `mysql+pymysql`.
 
 ### 2. Backend
 
@@ -58,7 +59,7 @@ CORS_ORIGINS=*
 MYSQL_URL=${{MySQL.MYSQL_URL}}
 ```
 
-El `Dockerfile` ejecuta automáticamente:
+El `Dockerfile` ejecuta automaticamente:
 
 ```bash
 alembic upgrade head
@@ -85,16 +86,16 @@ Variables:
 API_URL=https://TU-BACKEND.up.railway.app/api/v1
 ```
 
-El frontend escucha el puerto dinámico `$PORT` que Railway asigna.
+El frontend escucha el puerto dinamico `$PORT` que Railway asigna.
 
 ### 4. Orden de deploy
 
 1. Deploy MySQL.
 2. Deploy backend.
 3. Verificar `/health`.
-4. Deploy frontend con `API_URL` apuntando al backend público.
+4. Deploy frontend con `API_URL` apuntando al backend publico.
 
-## Ejecución con Docker local opcional
+## Ejecucion con Docker local opcional
 
 ```bash
 docker compose up --build
@@ -109,7 +110,7 @@ Servicios:
 
 El backend ejecuta `alembic upgrade head` al iniciar.
 
-## Ejecución local sin Docker
+## Ejecucion local sin Docker
 
 1. Crear una base MySQL:
 
@@ -147,21 +148,24 @@ streamlit run streamlit_app.py
 Ver `.env.example`.
 
 - `DATABASE_URL`: URL SQLAlchemy para MySQL.
+- `MYSQL_URL`: URL MySQL provista por Railway.
 - `SECRET_KEY`: clave para firmar JWT.
 - `UPLOAD_DIR`: carpeta de PDFs subidos.
-- `OPENAI_API_KEY`: reservado para clasificación IA futura.
-- `CORS_ORIGINS`: orígenes permitidos.
+- `OPENAI_API_KEY`: reservado para clasificacion IA futura.
+- `CORS_ORIGINS`: origenes permitidos.
 - `API_URL`: URL que usa Streamlit para llamar al backend.
 
 ## Migraciones
 
-Crear una migración nueva:
+Crear una migracion nueva:
 
 ```bash
 cd backend
 alembic revision --autogenerate -m "descripcion"
 alembic upgrade head
 ```
+
+En Railway, el backend corre `alembic upgrade head`, por lo que la migracion `0002_phase2_budgets` se aplica automaticamente en el proximo deploy.
 
 ## Uso
 
@@ -170,6 +174,17 @@ alembic upgrade head
 3. Subir PDFs bancarios.
 4. Revisar movimientos importados.
 5. Reclasificar si hace falta.
-6. Analizar dashboard.
+6. Crear presupuestos por categoria.
+7. Analizar dashboard e insights.
 
-Los parsers están preparados para líneas habituales de resúmenes Visa argentinos con fechas, descripción, importe y cuotas como `Cuota 06/06`.
+Los parsers estan preparados para lineas habituales de resumenes Visa argentinos con fechas, descripcion, importe y cuotas como `Cuota 06/06`.
+
+## Fase 2
+
+La Fase 2 agrega capacidades de control financiero:
+
+- `budgets`: presupuestos mensuales por categoria.
+- `GET /api/v1/budgets`: lista presupuestos y calcula gastado, restante y porcentaje de uso.
+- `POST /api/v1/budgets`: crea o actualiza el presupuesto de una categoria para un mes.
+- `GET /api/v1/insights`: genera alertas de ahorro bajo, carga fija alta, presupuestos excedidos y gastos hormiga.
+- Deduplicacion basica en importacion de PDFs por usuario, fecha, descripcion, importe, banco y tipo de tarjeta.

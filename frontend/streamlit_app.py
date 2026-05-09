@@ -14,11 +14,152 @@ st.set_page_config(page_title="Asistente Financiero Familiar IA", page_icon="AF"
 st.markdown(
     """
     <style>
-    .stApp { background: #f7f8fa; color: #111827; }
-    [data-testid="stSidebar"] { background: #ffffff; border-right: 1px solid #e5e7eb; }
-    div[data-testid="stMetric"] { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; }
-    .block-container { padding-top: 1.5rem; }
-    h1, h2, h3 { letter-spacing: 0; }
+    :root {
+        --bg: #f4f6f8;
+        --surface: #ffffff;
+        --surface-muted: #eef2f6;
+        --border: #d8dee7;
+        --text: #111827;
+        --muted: #667085;
+        --primary: #0f766e;
+        --primary-dark: #115e59;
+        --navy: #0f172a;
+        --danger: #b42318;
+    }
+
+    .stApp {
+        background: var(--bg);
+        color: var(--text);
+    }
+
+    [data-testid="stHeader"] {
+        background: rgba(244, 246, 248, 0.96);
+        border-bottom: 1px solid var(--border);
+    }
+
+    [data-testid="stSidebar"] {
+        background: var(--navy);
+        border-right: 1px solid #1e293b;
+    }
+
+    [data-testid="stSidebar"] * {
+        color: #f8fafc;
+    }
+
+    [data-testid="stSidebar"] div[role="radiogroup"] label {
+        border-radius: 8px;
+        padding: 4px 8px;
+    }
+
+    .block-container {
+        padding-top: 2rem;
+        max-width: 1180px;
+    }
+
+    h1, h2, h3 {
+        color: var(--navy);
+        letter-spacing: 0;
+        font-weight: 700;
+    }
+
+    p, label, span {
+        color: var(--text);
+    }
+
+    div[data-testid="stCaptionContainer"] p {
+        color: var(--muted);
+    }
+
+    div[data-testid="stMetric"] {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    }
+
+    div[data-testid="stTextInput"] label,
+    div[data-testid="stNumberInput"] label,
+    div[data-testid="stTextArea"] label,
+    div[data-testid="stSelectbox"] label,
+    div[data-testid="stDateInput"] label {
+        color: #344054;
+        font-weight: 600;
+    }
+
+    div[data-baseweb="input"],
+    div[data-baseweb="select"] > div,
+    textarea {
+        background: var(--surface) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 8px !important;
+        color: var(--text) !important;
+        box-shadow: none !important;
+    }
+
+    input,
+    textarea {
+        color: var(--text) !important;
+        background: var(--surface) !important;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+        color: #98a2b3 !important;
+    }
+
+    button[kind="primary"],
+    div[data-testid="stFormSubmitButton"] button {
+        background: var(--primary) !important;
+        color: #ffffff !important;
+        border: 1px solid var(--primary) !important;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+    }
+
+    button[kind="primary"]:hover,
+    div[data-testid="stFormSubmitButton"] button:hover {
+        background: var(--primary-dark) !important;
+        border-color: var(--primary-dark) !important;
+    }
+
+    button[kind="secondary"] {
+        background: var(--surface) !important;
+        color: var(--navy) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 8px !important;
+    }
+
+    button[kind="secondary"]:hover {
+        border-color: var(--primary) !important;
+        color: var(--primary-dark) !important;
+    }
+
+    div[data-baseweb="tab-list"] {
+        gap: 8px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    button[data-baseweb="tab"] {
+        color: var(--muted) !important;
+        font-weight: 700;
+    }
+
+    button[data-baseweb="tab"][aria-selected="true"] {
+        color: var(--primary-dark) !important;
+        border-bottom-color: var(--primary) !important;
+    }
+
+    div[data-testid="stAlert"] {
+        border-radius: 8px;
+        border: 1px solid var(--border);
+    }
+
+    div[data-testid="stDataFrame"],
+    div[data-testid="stTable"] {
+        background: var(--surface);
+        border-radius: 8px;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -49,6 +190,7 @@ def money(value) -> str:
 def login_screen():
     st.title("Asistente Financiero Familiar IA")
     st.caption("MVP para entender gastos familiares con resúmenes bancarios argentinos.")
+    st.info("Si no tenes usuario, abrí la pestaña Crear cuenta para registrarte.")
     tab_login, tab_register = st.tabs(["Ingresar", "Crear cuenta"])
 
     with tab_login:
@@ -71,7 +213,7 @@ def login_screen():
         full_name = st.text_input("Nombre", key="register_name")
         email = st.text_input("Email", key="register_email")
         password = st.text_input("Contraseña", type="password", key="register_password")
-        if st.button("Crear cuenta", use_container_width=True):
+        if st.button("Crear cuenta", type="primary", use_container_width=True):
             try:
                 requests.post(
                     f"{API_URL}/auth/register",
@@ -86,11 +228,24 @@ def login_screen():
 def dashboard():
     st.title("Dashboard financiero")
     data = api_get("/dashboard/summary")
+    insights = api_get("/insights")
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Ingresos", money(data["income"]))
     c2.metric("Gastos", money(data["expenses"]))
     c3.metric("Ahorro", money(data["savings"]))
     c4.metric("% ahorro", f'{data["savings_rate"]:.1f}%')
+
+    st.subheader("Insights")
+    for insight in insights[:3]:
+        message = f'**{insight["title"]}**  \n{insight["detail"]}'
+        if insight["level"] == "danger":
+            st.error(message)
+        elif insight["level"] == "warning":
+            st.warning(message)
+        elif insight["level"] == "success":
+            st.success(message)
+        else:
+            st.info(message)
 
     left, right = st.columns(2)
     with left:
@@ -208,6 +363,70 @@ def manual_entries():
             st.success("Ingreso agregado.")
 
 
+def budgets_screen():
+    st.title("Presupuestos")
+    categories = api_get("/categories")
+    category_by_name = {c["name"]: c["id"] for c in categories}
+    today = datetime.today()
+    col_year, col_month = st.columns(2)
+    year = col_year.number_input("Año", min_value=2020, max_value=2100, value=today.year, step=1)
+    month = col_month.number_input("Mes", min_value=1, max_value=12, value=today.month, step=1)
+
+    with st.form("budget_form"):
+        category_name = st.selectbox("Categoría", list(category_by_name.keys()))
+        amount = st.number_input("Presupuesto mensual", min_value=0.0, step=1000.0)
+        notes = st.text_input("Notas")
+        submitted = st.form_submit_button("Guardar presupuesto", type="primary")
+        if submitted:
+            api_post(
+                "/budgets",
+                json={
+                    "category_id": category_by_name[category_name],
+                    "year": int(year),
+                    "month": int(month),
+                    "amount": amount,
+                    "notes": notes,
+                },
+            )
+            st.success("Presupuesto guardado.")
+
+    budgets = api_get(f"/budgets?year={int(year)}&month={int(month)}")
+    if not budgets:
+        st.info("No hay presupuestos cargados para este período.")
+        return
+
+    rows = []
+    for item in budgets:
+        rows.append(
+            {
+                "id": item["id"],
+                "categoría": item["category"]["name"] if item.get("category") else item["category_id"],
+                "presupuesto": float(item["amount"]),
+                "gastado": float(item["spent"]),
+                "restante": float(item["remaining"]),
+                "uso %": round(float(item["usage_percent"]), 1),
+            }
+        )
+    df = pd.DataFrame(rows)
+    st.dataframe(df, hide_index=True, use_container_width=True)
+    st.plotly_chart(px.bar(df, x="categoría", y=["presupuesto", "gastado"], barmode="group"), use_container_width=True)
+
+
+def insights_screen():
+    st.title("Insights financieros")
+    insights = api_get("/insights")
+    for insight in insights:
+        message = f'**{insight["title"]}**  \n{insight["detail"]}'
+        if insight["level"] == "danger":
+            st.error(message)
+        elif insight["level"] == "warning":
+            st.warning(message)
+        elif insight["level"] == "success":
+            st.success(message)
+        else:
+            st.info(message)
+
+
 def settings_screen():
     st.title("Configuración")
     st.write("API conectada:", API_URL)
@@ -222,7 +441,10 @@ def app():
 
     with st.sidebar:
         st.title("Finanzas Familiares")
-        page = st.radio("Secciones", ["Dashboard", "Subir PDFs", "Movimientos", "Ingresos y gastos", "Configuración"])
+        page = st.radio(
+            "Secciones",
+            ["Dashboard", "Insights", "Presupuestos", "Subir PDFs", "Movimientos", "Ingresos y gastos", "Configuración"],
+        )
         if st.button("Cerrar sesión"):
             st.session_state.pop("token", None)
             st.rerun()
@@ -230,6 +452,10 @@ def app():
     try:
         if page == "Dashboard":
             dashboard()
+        elif page == "Insights":
+            insights_screen()
+        elif page == "Presupuestos":
+            budgets_screen()
         elif page == "Subir PDFs":
             upload_pdf()
         elif page == "Movimientos":

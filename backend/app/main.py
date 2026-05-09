@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, categories, dashboard, files, manual, transactions
+from app.api import auth, budgets, categories, dashboard, files, insights, manual, transactions
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -17,7 +17,9 @@ app.add_middleware(
 
 app.include_router(auth.router, prefix=settings.api_prefix)
 app.include_router(categories.router, prefix=settings.api_prefix)
+app.include_router(budgets.router, prefix=settings.api_prefix)
 app.include_router(files.router, prefix=settings.api_prefix)
+app.include_router(insights.router, prefix=settings.api_prefix)
 app.include_router(transactions.router, prefix=settings.api_prefix)
 app.include_router(manual.router, prefix=settings.api_prefix)
 app.include_router(dashboard.router, prefix=settings.api_prefix)

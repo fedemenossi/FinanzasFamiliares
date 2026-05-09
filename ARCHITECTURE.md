@@ -1,57 +1,58 @@
 # Arquitectura
 
-## Visión general
+## Vision general
 
-El sistema está dividido en tres capas:
+El sistema esta dividido en tres capas:
 
-- Backend FastAPI: API REST, autenticación, persistencia, procesamiento de PDFs y clasificación.
-- MySQL 8: datos transaccionales, usuarios, categorías, movimientos y archivos.
-- Frontend Streamlit: experiencia de usuario para carga, edición y análisis financiero.
+- Backend FastAPI: API REST, autenticacion, persistencia, procesamiento de PDFs y clasificacion.
+- MySQL 8: datos transaccionales, usuarios, categorias, movimientos y archivos.
+- Frontend Streamlit: experiencia de usuario para carga, edicion y analisis financiero.
 
 ## Backend
 
-Módulos principales:
+Modulos principales:
 
 - `app/api`: routers HTTP.
 - `app/models`: modelos SQLAlchemy 2.x.
 - `app/schemas`: contratos Pydantic.
 - `app/parsers`: arquitectura extensible de parsers bancarios.
-- `app/services`: reglas de clasificación y bootstrap de categorías.
-- `app/ai`: punto de extensión para clasificación con OpenAI.
+- `app/services`: reglas de clasificacion y bootstrap de categorias.
+- `app/ai`: punto de extension para clasificacion con OpenAI.
 
 ## Flujo de PDFs
 
 1. El usuario sube un PDF en Streamlit.
-2. Streamlit envía el archivo a `POST /api/v1/files/upload`.
+2. Streamlit envia el archivo a `POST /api/v1/files/upload`.
 3. El backend guarda el PDF en `UPLOAD_DIR`.
 4. `ParserFactory` extrae texto y detecta banco/tipo:
    - `BBVA` + `VISA PLATINUM`: `BBVAVisaParser`.
-   - `Banco Nación`/`Banco Nacion`/`BNA` + `VISA SIGNATURE`: `BNAVisaParser`.
+   - `Banco Nacion`/`BNA` + `VISA SIGNATURE`: `BNAVisaParser`.
    - Si no reconoce: `GenericVisaParser`.
 5. El parser extrae movimientos y resumen.
-6. El clasificador por reglas asigna categoría y tipo de gasto.
+6. El clasificador por reglas asigna categoria y tipo de gasto.
 7. Se persisten `uploaded_files`, `statement_summaries` y `transactions`.
+8. En Fase 2, la importacion evita duplicados por usuario, fecha, descripcion, importe, banco y tipo de tarjeta.
 
 ## Parsers
 
 La clase base centraliza:
 
-- Extracción de texto con `pdfplumber`.
+- Extraccion de texto con `pdfplumber`.
 - Fallback con `PyMuPDF`.
-- Normalización de líneas.
-- Interpretación de importes argentinos:
+- Normalizacion de lineas.
+- Interpretacion de importes argentinos:
   - `1.102.843,98` -> `1102843.98`
   - `3.546,20-` -> `-3546.20`
-- Detección de cuotas:
+- Deteccion de cuotas:
   - `Cuota 06/06`
   - `Cuota 21/24`
-- Exclusión de saldos, pagos, vencimientos y totales.
+- Exclusion de saldos, pagos, vencimientos y totales.
 
-Los parsers específicos heredan de `BaseParser` y fijan metadatos de banco/tarjeta. En una evolución posterior se pueden sobreescribir patrones por banco cuando aparezcan variaciones reales de layout.
+Los parsers especificos heredan de `BaseParser` y fijan metadatos de banco/tarjeta. En una evolucion posterior se pueden sobreescribir patrones por banco cuando aparezcan variaciones reales de layout.
 
-## Clasificación
+## Clasificacion
 
-El MVP usa reglas determinísticas en `app/services/classifier.py`.
+El MVP usa reglas deterministicas en `app/services/classifier.py`.
 
 Ejemplos:
 
@@ -79,12 +80,32 @@ Devuelve KPIs y series listas para graficar:
 - Gastos.
 - Ahorro.
 - Porcentaje de ahorro.
-- Gastos por categoría.
-- Evolución mensual.
+- Gastos por categoria.
+- Evolucion mensual.
 - Fijos vs variables.
 - Top gastos.
 - Comercios frecuentes.
 - Gastos hormiga.
+
+## Fase 2: presupuestos e insights
+
+La Fase 2 incorpora una capa de control:
+
+- `budgets`: define limites mensuales por categoria.
+- `insights`: interpreta gastos, ingresos y presupuestos para generar alertas.
+- Deduplicacion de importaciones: evita duplicar movimientos cuando se sube dos veces un mismo resumen o resumen solapado.
+
+Los presupuestos se comparan contra:
+
+- Movimientos importados en `transactions`.
+- Gastos manuales en `manual_expenses`.
+
+Los insights actuales detectan:
+
+- Ahorro mensual bajo o saludable.
+- Carga fija alta respecto de ingresos.
+- Presupuestos al 80% o excedidos.
+- Gastos hormiga por comercios repetidos.
 
 ## Modelo de datos
 
@@ -100,25 +121,25 @@ Tablas principales:
 - `uploaded_files`
 - `statement_summaries`
 - `classification_rules`
+- `budgets`
 
-`transactions` conserva datos crudos y normalizados para permitir auditoría y reclasificación sin perder el texto original del resumen.
+`transactions` conserva datos crudos y normalizados para permitir auditoria y reclasificacion sin perder el texto original del resumen.
 
 ## IA futura
 
-`app/ai/classifier.py` define un placeholder para integrar OpenAI, por ejemplo con GPT-4o-mini. La intención es usar IA como segunda capa:
+`app/ai/classifier.py` define un placeholder para integrar OpenAI, por ejemplo con GPT-4o-mini. La intencion es usar IA como segunda capa:
 
 1. Reglas exactas para comercios conocidos.
 2. Reglas del usuario.
 3. IA para comercios ambiguos.
-4. Confirmación o corrección manual para mejorar reglas futuras.
+4. Confirmacion o correccion manual para mejorar reglas futuras.
 
 ## Escalabilidad
 
-La separación parser/factory/clasificador permite sumar bancos sin modificar endpoints. La autenticación ya usa `user_id` en todas las entidades críticas, por lo que el modelo está preparado para multiusuario. Para SaaS real convendría sumar:
+La separacion parser/factory/clasificador permite sumar bancos sin modificar endpoints. La autenticacion ya usa `user_id` en todas las entidades criticas, por lo que el modelo esta preparado para multiusuario. Para SaaS real convendria sumar:
 
-- Jobs asincrónicos para PDFs grandes.
+- Jobs asincronicos para PDFs grandes.
 - Almacenamiento externo de PDFs.
-- Deduplicación de movimientos.
-- Auditoría de cambios.
+- Auditoria de cambios.
 - Reglas aprendidas por usuario.
 - Tests con fixtures anonimizados de PDFs reales.

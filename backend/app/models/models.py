@@ -160,3 +160,21 @@ class ClassificationRule(Base, TimestampMixin):
     expense_type: Mapped[str] = mapped_column(String(20), default="variable", nullable=False)
     priority: Mapped[int] = mapped_column(Integer, default=100, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+
+class Budget(Base, TimestampMixin):
+    __tablename__ = "budgets"
+    __table_args__ = (
+        UniqueConstraint("user_id", "category_id", "year", "month", name="uq_budgets_user_category_month"),
+        Index("ix_budgets_user_period", "user_id", "year", "month"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"), index=True, nullable=False)
+    year: Mapped[int] = mapped_column(Integer, nullable=False)
+    month: Mapped[int] = mapped_column(Integer, nullable=False)
+    amount: Mapped[Decimal] = mapped_column(DECIMAL(14, 2), nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text)
+
+    category: Mapped[Category] = relationship()

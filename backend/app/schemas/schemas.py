@@ -94,3 +94,28 @@ class DashboardSummary(BaseModel):
     top_expenses: list[dict]
     frequent_merchants: list[dict]
     small_expenses: list[dict]
+
+
+class BudgetCreate(BaseModel):
+    category_id: int
+    year: int
+    month: int
+    amount: Decimal
+    notes: str | None = None
+
+
+class BudgetOut(BudgetCreate):
+    id: int
+    category: CategoryOut | None = None
+    spent: Decimal = Decimal("0")
+    remaining: Decimal = Decimal("0")
+    usage_percent: float = 0
+
+    model_config = {"from_attributes": True}
+
+
+class InsightOut(BaseModel):
+    level: str
+    title: str
+    detail: str
+    metric: float | None = None

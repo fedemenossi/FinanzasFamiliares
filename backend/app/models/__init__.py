@@ -1,5 +1,6 @@
 from app.models.models import (
     Account,
+    Budget,
     Card,
     Category,
     ClassificationRule,
@@ -13,6 +14,7 @@ from app.models.models import (
 
 __all__ = [
     "Account",
+    "Budget",
     "Card",
     "Category",
     "ClassificationRule",
