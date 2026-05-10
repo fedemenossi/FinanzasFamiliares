@@ -12,7 +12,14 @@ class ParserFactory:
         upper = text.upper()
         if "BBVA" in upper and "VISA PLATINUM" in upper:
             return BBVAVisaParser()
-        if ("BANCO NACIÓN" in upper or "BANCO NACION" in upper or "BNA" in upper) and "VISA SIGNATURE" in upper:
+        if (
+            "BANCO NACIÓN" in upper
+            or "BANCO NACION" in upper
+            or "CUENTA NACION" in upper
+            or "CUENTA NACIÓN" in upper
+            or "NACION ZAFIRO" in upper
+            or "BNA" in upper
+        ) and "VISA SIGNATURE" in upper:
             return BNAVisaParser()
         return GenericVisaParser()
 

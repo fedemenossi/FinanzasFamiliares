@@ -76,6 +76,7 @@ El prompt describe endpoints futuros como `/uploads/pdf` o `/income`. El backend
 - `POST /auth/login`
 - `GET /auth/me`
 - `POST /files/upload`
+- `GET /files`
 - `GET /transactions`
 - `PATCH /transactions/:id`
 - `GET /categories`

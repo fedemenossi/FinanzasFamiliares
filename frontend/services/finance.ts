@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@/services/api";
-import type { Budget, Category, DashboardSummary, IncomeCategory, Insight, ManualExpense, ManualIncome, Transaction } from "@/types/api";
+import type { Budget, Category, DashboardSummary, IncomeCategory, Insight, ManualExpense, ManualIncome, Transaction, UploadedFile, UploadResult } from "@/types/api";
 
 export async function getDashboard() {
   const { data } = await api.get<DashboardSummary>("/dashboard/summary");
@@ -50,9 +50,14 @@ export async function deleteTransaction(id: number) {
 export async function uploadPdf(file: File) {
   const form = new FormData();
   form.append("file", file);
-  const { data } = await api.post<Transaction[]>("/files/upload", form, {
+  const { data } = await api.post<UploadResult>("/files/upload", form, {
     headers: { "Content-Type": "multipart/form-data" }
   });
+  return data;
+}
+
+export async function getUploadedFiles() {
+  const { data } = await api.get<UploadedFile[]>("/files");
   return data;
 }
 

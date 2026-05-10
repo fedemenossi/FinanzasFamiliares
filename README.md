@@ -202,6 +202,7 @@ El frontend consume las rutas reales actuales del backend:
 - `POST /api/v1/auth/login`
 - `GET /api/v1/auth/me`
 - `POST /api/v1/files/upload`
+- `GET /api/v1/files`
 - `GET /api/v1/transactions`
 - `PATCH /api/v1/transactions/:id`
 - `GET /api/v1/categories`
@@ -228,3 +229,28 @@ Pendientes para completar CRUD total:
 - `DELETE /income/:id`
 - `PATCH /expenses/:id`
 - `DELETE /expenses/:id`
+
+## Diagnostico de PDFs
+
+La pantalla `/uploads` muestra:
+
+- Parser detectado.
+- Banco detectado.
+- Cantidad de movimientos extraidos.
+- Cantidad de movimientos nuevos.
+- Cantidad de duplicados.
+- Historial de PDFs procesados.
+
+Si el PDF queda en 0 movimientos nuevos puede significar:
+
+- El parser no detecto movimientos con los patrones actuales.
+- El PDF ya habia sido importado y todos los movimientos fueron deduplicados.
+- El PDF contiene texto con un layout distinto al esperado.
+
+En logs del backend buscar:
+
+- `pdf_upload_started`
+- `pdf_parser_detected`
+- `pdf_parsed`
+- `pdf_upload_completed`
+- `pdf_upload_failed`

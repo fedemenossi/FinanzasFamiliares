@@ -32,6 +32,8 @@ class ParsedStatement:
     current_balance: Decimal | None = None
     minimum_payment: Decimal | None = None
     raw_text: str = ""
+    diagnostic_lines: list[str] = field(default_factory=list)
+    candidate_lines: list[str] = field(default_factory=list)
 
 
 class BaseParser:
@@ -61,6 +63,8 @@ class BaseParser:
             raw_text=text,
         )
         statement.transactions = self.extract_transactions(text)
+        statement.diagnostic_lines = self.get_diagnostic_lines(text)
+        statement.candidate_lines = self.get_candidate_lines(text)
         statement.previous_balance = self.find_labeled_amount(text, ("SALDO ANTERIOR",))
         statement.current_balance = self.find_labeled_amount(text, ("SALDO ACTUAL", "SALDO AL CIERRE"))
         statement.minimum_payment = self.find_labeled_amount(text, ("PAGO MINIMO", "PAGO MÍNIMO"))
@@ -99,23 +103,41 @@ class BaseParser:
         if not cleaned or self.should_skip(cleaned):
             return None
 
-        match = re.match(
-            r"^(?P<date>\d{2}[/-]\d{2}(?:[/-]\d{2,4})?)\s+(?:(?P<voucher>\d{4,})\s+)?(?P<desc>.+?)\s+(?P<amount>-?\$?\s*\d{1,3}(?:\.\d{3})*,\d{2}-?)$",
-            cleaned,
-        )
-        if not match:
+        date_match = re.match(r"^(?P<date>\d{2}[\/\-.]\d{2}(?:[\/\-.]\d{2,4})?)\s+(?P<body>.+)$", cleaned)
+        if not date_match:
             return None
 
-        description = match.group("desc").strip()
-        if self.should_skip(description):
+        amount_matches = list(
+            re.finditer(
+                r"(?P<amount>-?(?:\$|ARS|U\$S|USD)?\s*\d{1,3}(?:\.\d{3})*,\d{2}-?|-?(?:\$|ARS|U\$S|USD)?\s*\d{4,},\d{2}-?)",
+                cleaned,
+                flags=re.IGNORECASE,
+            )
+        )
+        if not amount_matches:
+            return None
+
+        amount_match = amount_matches[-1]
+        body = date_match.group("body").strip()
+        description = cleaned[date_match.end("date") : amount_match.start()].strip()
+        description = re.sub(r"^(?:\d{2}[\/\-.]\d{2}(?:[\/\-.]\d{2,4})?)\s+", "", description)
+        voucher_match = re.match(r"^(?P<voucher>\d{4,}[A-Z*]?)\s+(?P<desc>.+)$", description)
+        voucher = None
+        if voucher_match:
+            voucher = voucher_match.group("voucher")
+            description = voucher_match.group("desc").strip()
+
+        description = self.clean_description(description)
+
+        if not description or self.should_skip(description):
             return None
 
         current, total = self.detect_installment(description)
         return ParsedTransaction(
-            transaction_date=self.parse_date(match.group("date")),
-            voucher_number=match.group("voucher"),
+            transaction_date=self.parse_date(date_match.group("date")),
+            voucher_number=voucher,
             raw_description=description,
-            amount=parse_argentine_amount(match.group("amount")),
+            amount=parse_argentine_amount(amount_match.group("amount")),
             is_installment=current is not None,
             installment_current=current,
             installment_total=total,
@@ -126,7 +148,7 @@ class BaseParser:
         return any(keyword in upper for keyword in self.skip_keywords)
 
     def parse_date(self, value: str) -> datetime:
-        parts = re.split(r"[/-]", value)
+        parts = re.split(r"[\/\-.]", value)
         day, month = int(parts[0]), int(parts[1])
         if len(parts) == 3:
             year = int(parts[2])
@@ -142,6 +164,14 @@ class BaseParser:
             return None, None
         return int(match.group(1)), int(match.group(2))
 
+    def clean_description(self, description: str) -> str:
+        value = " ".join(description.strip().split())
+        value = re.sub(r"\s+(?:\$|ARS|U\$S|USD)?\s*\d{1,3}(?:\.\d{3})*,\d{2}-?$", "", value, flags=re.IGNORECASE)
+        value = re.sub(r"\b\d{8,}\b(?:\s*-\d{3}){0,3}\b", "", value)
+        value = re.sub(r"\b\d{3,}-\d{3,}-\d{3,}\b", "", value)
+        value = re.sub(r"\s+", " ", value)
+        return value.strip(" -")
+
     def find_labeled_amount(self, text: str, labels: tuple[str, ...]) -> Decimal | None:
         for line in text.splitlines():
             upper = line.upper()
@@ -150,6 +180,30 @@ class BaseParser:
                 if amounts:
                     return parse_argentine_amount(amounts[-1])
         return None
+
+    def get_candidate_lines(self, text: str, limit: int = 40) -> list[str]:
+        candidates: list[str] = []
+        for line in text.splitlines():
+            cleaned = " ".join(line.strip().split())
+            if not cleaned or self.should_skip(cleaned):
+                continue
+            has_date = re.search(r"\d{2}[\/\-.]\d{2}(?:[\/\-.]\d{2,4})?", cleaned)
+            has_amount = re.search(r"\d{1,3}(?:\.\d{3})*,\d{2}|\d{4,},\d{2}", cleaned)
+            if has_date and has_amount:
+                candidates.append(cleaned[:500])
+            if len(candidates) >= limit:
+                break
+        return candidates
+
+    def get_diagnostic_lines(self, text: str, limit: int = 25) -> list[str]:
+        lines: list[str] = []
+        for line in text.splitlines():
+            cleaned = " ".join(line.strip().split())
+            if cleaned:
+                lines.append(cleaned[:500])
+            if len(lines) >= limit:
+                break
+        return lines
 
 
 def parse_argentine_amount(value: str) -> Decimal:

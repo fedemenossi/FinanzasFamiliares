@@ -49,6 +49,10 @@ RULES: list[tuple[str, Classification]] = [
     ("COMISION", Classification("Servicios bancarios", "fixed")),
     ("BNA VIAJES", Classification("Viajes", "fixed")),
     ("MEGATONE", Classification("Compras", "fixed")),
+    ("METROTEL", Classification("Servicios", "fixed")),
+    ("TICKETING", Classification("Entretenimiento", "variable")),
+    ("ASOCIACION DE ME", Classification("Salud", "fixed")),
+    ("SOC DE OBSTETRIC", Classification("Salud", "fixed")),
     ("NETFLIX", Classification("Streaming", "fixed")),
     ("SPOTIFY", Classification("Streaming", "fixed")),
 ]

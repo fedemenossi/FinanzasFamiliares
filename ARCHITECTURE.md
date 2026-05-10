@@ -98,6 +98,16 @@ frontend/
 8. La importacion evita duplicados por usuario, fecha, descripcion, importe, banco y tipo de tarjeta.
 9. El frontend muestra los movimientos extraidos.
 
+El backend registra eventos de diagnostico:
+
+- `pdf_upload_started`
+- `pdf_parser_detected`
+- `pdf_parsed`
+- `pdf_upload_completed`
+- `pdf_upload_failed`
+
+La respuesta de `POST /api/v1/files/upload` incluye metricas de procesamiento: parser, banco, movimientos extraidos, movimientos nuevos y duplicados. `GET /api/v1/files` devuelve el historial de archivos del usuario.
+
 ## Parsers
 
 La clase base centraliza:

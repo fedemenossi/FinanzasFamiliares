@@ -64,6 +64,33 @@ class TransactionOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class UploadedFileOut(BaseModel):
+    id: int
+    original_filename: str
+    bank_name: str | None = None
+    statement_type: str | None = None
+    status: str
+    error_message: str | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class UploadResult(BaseModel):
+    uploaded_file: UploadedFileOut
+    parser_name: str
+    bank_name: str | None = None
+    statement_type: str | None = None
+    extracted_count: int
+    created_count: int
+    duplicate_count: int
+    raw_text_chars: int
+    diagnostic_lines: list[str] = []
+    candidate_lines: list[str] = []
+    transactions: list[TransactionOut]
+    message: str
+
+
 class TransactionUpdate(BaseModel):
     category_id: int | None = None
     normalized_description: str | None = None

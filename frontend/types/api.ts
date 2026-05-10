@@ -29,6 +29,31 @@ export type Transaction = {
   category?: Category | null;
 };
 
+export type UploadedFile = {
+  id: number;
+  original_filename: string;
+  bank_name?: string | null;
+  statement_type?: string | null;
+  status: string;
+  error_message?: string | null;
+  created_at: string;
+};
+
+export type UploadResult = {
+  uploaded_file: UploadedFile;
+  parser_name: string;
+  bank_name?: string | null;
+  statement_type?: string | null;
+  extracted_count: number;
+  created_count: number;
+  duplicate_count: number;
+  raw_text_chars: number;
+  diagnostic_lines: string[];
+  candidate_lines: string[];
+  transactions: Transaction[];
+  message: string;
+};
+
 export type ManualIncome = {
   id: number;
   income_date: string;

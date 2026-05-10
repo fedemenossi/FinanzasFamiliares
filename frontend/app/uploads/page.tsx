@@ -1,27 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FileUp } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { uploadPdf } from "@/services/finance";
-import type { Transaction } from "@/types/api";
+import { getUploadedFiles, uploadPdf } from "@/services/finance";
+import type { Transaction, UploadedFile, UploadResult } from "@/types/api";
 
 export default function UploadsPage() {
   const [file, setFile] = useState<File | null>(null);
   const [rows, setRows] = useState<Transaction[]>([]);
+  const [result, setResult] = useState<UploadResult | null>(null);
+  const [history, setHistory] = useState<UploadedFile[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function loadHistory() {
+    try {
+      setHistory(await getUploadedFiles());
+    } catch {
+      setHistory([]);
+    }
+  }
+
+  useEffect(() => {
+    void loadHistory();
+  }, []);
 
   async function submit() {
     if (!file) return;
     setLoading(true);
     setError(null);
+    setResult(null);
     try {
-      setRows(await uploadPdf(file));
+      const uploadResult = await uploadPdf(file);
+      setResult(uploadResult);
+      setRows(uploadResult.transactions);
+      await loadHistory();
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo procesar el PDF");
     } finally {
@@ -53,15 +71,87 @@ export default function UploadsPage() {
         </CardContent>
       </Card>
 
+      {result ? (
+        <div className="grid gap-4 md:grid-cols-4">
+          <ResultCard title="Parser" value={result.parser_name} />
+          <ResultCard title="Banco" value={result.bank_name || "No reconocido"} />
+          <ResultCard title="Extraidos" value={String(result.extracted_count)} />
+          <ResultCard title="Nuevos / duplicados" value={`${result.created_count} / ${result.duplicate_count}`} />
+          <ResultCard title="Texto extraido" value={`${result.raw_text_chars} caracteres`} />
+          <div className="md:col-span-4 rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">{result.message}</div>
+        </div>
+      ) : null}
+
+      {result && result.extracted_count === 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Diagnostico del parser</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <p className="mb-2 text-sm font-medium text-slate-900">Lineas candidatas con fecha e importe</p>
+              {result.candidate_lines.length ? (
+                <DebugLines lines={result.candidate_lines} />
+              ) : (
+                <p className="text-sm text-slate-500">No se encontraron lineas con fecha e importe. Si el texto extraido es 0, probablemente el PDF sea imagen y requiere OCR.</p>
+              )}
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-medium text-slate-900">Primeras lineas extraidas</p>
+              {result.diagnostic_lines.length ? <DebugLines lines={result.diagnostic_lines} /> : <p className="text-sm text-slate-500">No se pudo extraer texto del PDF.</p>}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card>
         <CardHeader>
-          <CardTitle>Movimientos extraidos {rows.length ? `(${rows.length})` : ""}</CardTitle>
+          <CardTitle>Movimientos nuevos {rows.length ? `(${rows.length})` : ""}</CardTitle>
         </CardHeader>
         <CardContent>
-          {rows.length ? <TransactionsMiniTable rows={rows} /> : <EmptyState title="Sin procesamiento reciente" description="Los movimientos extraidos apareceran aca despues de subir un PDF." />}
+          {rows.length ? (
+            <TransactionsMiniTable rows={rows} />
+          ) : (
+            <EmptyState
+              title="Sin movimientos nuevos"
+              description={
+                result
+                  ? "El PDF pudo haber tenido 0 movimientos detectados o todos los movimientos ya estaban importados. Revisa el resumen de procesamiento arriba."
+                  : "Los movimientos nuevos apareceran aca despues de subir un PDF."
+              }
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Historial de PDFs</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {history.length ? <UploadsHistory rows={history} /> : <EmptyState title="Sin PDFs cargados" description="Aca se mostraran los ultimos archivos procesados." />}
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function DebugLines({ lines }: { lines: string[] }) {
+  return (
+    <pre className="max-h-72 overflow-auto rounded-md border border-slate-200 bg-slate-950 p-4 text-xs leading-5 text-slate-100">
+      {lines.map((line, index) => `${index + 1}. ${line}`).join("\n")}
+    </pre>
+  );
+}
+
+function ResultCard({ title, value }: { title: string; value: string }) {
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <p className="text-xs font-medium uppercase text-slate-500">{title}</p>
+        <p className="mt-2 truncate text-sm font-semibold text-slate-950">{value}</p>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -84,6 +174,37 @@ function TransactionsMiniTable({ rows }: { rows: Transaction[] }) {
               <td className="font-medium text-slate-900">{row.normalized_description}</td>
               <td className="text-slate-500">{row.category?.name ?? "Sin categoria"}</td>
               <td className="text-right font-medium">{formatCurrency(row.amount)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function UploadsHistory({ rows }: { rows: UploadedFile[] }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left text-sm">
+        <thead className="border-b text-xs uppercase text-slate-500">
+          <tr>
+            <th className="py-3">Fecha</th>
+            <th>Archivo</th>
+            <th>Banco</th>
+            <th>Tipo</th>
+            <th>Estado</th>
+            <th>Error</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {rows.map((row) => (
+            <tr key={row.id}>
+              <td className="py-3 text-slate-500">{formatDate(row.created_at)}</td>
+              <td className="font-medium text-slate-900">{row.original_filename}</td>
+              <td className="text-slate-500">{row.bank_name ?? "-"}</td>
+              <td className="text-slate-500">{row.statement_type ?? "-"}</td>
+              <td className="text-slate-500">{row.status}</td>
+              <td className="max-w-sm truncate text-red-600">{row.error_message ?? "-"}</td>
             </tr>
           ))}
         </tbody>
