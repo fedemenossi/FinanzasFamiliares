@@ -17,7 +17,7 @@ Frontend profesional para Asistente Financiero Familiar IA.
 
 ## Variables
 
-Crear `frontend/.env.local`:
+Crear `frontend/.env`:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1

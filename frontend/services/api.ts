@@ -23,7 +23,13 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<{ detail?: string; message?: string }>) => {
-    const message = error.response?.data?.detail || error.response?.data?.message || error.message || "Ocurrio un error";
+    const message =
+      error.response?.data?.detail ||
+      error.response?.data?.message ||
+      (error.message === "Network Error"
+        ? `Network Error: no se pudo conectar con ${API_URL}. Verifica NEXT_PUBLIC_API_URL y que el backend este publico.`
+        : error.message) ||
+      "Ocurrio un error";
     return Promise.reject(new Error(message));
   }
 );
