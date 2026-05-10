@@ -5,7 +5,10 @@ import { useAuth } from "@/hooks/use-auth";
 
 export default function SettingsPage() {
   const { user } = useAuth();
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+  const apiUrl =
+    typeof window !== "undefined"
+      ? window.__AFFIA_CONFIG__?.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || "No configurada"
+      : process.env.NEXT_PUBLIC_API_URL || "No configurada";
 
   return (
     <div className="page-shell pb-24 lg:pb-6">
