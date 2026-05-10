@@ -19,10 +19,13 @@ services:
   backend:
     build: ./backend
     environment:
-      DATABASE_URL: mysql+pymysql://family:family@mysql:3306/family_finance
-      SECRET_KEY: change-me-local
-      UPLOAD_DIR: /app/uploads
-      CORS_ORIGINS: "*"
+      DATABASE_URL: ${DATABASE_URL:-mysql+pymysql://family:family@mysql:3306/family_finance}
+      MYSQL_URL: ${MYSQL_URL:-}
+      SECRET_KEY: ${SECRET_KEY:-change-me-local}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+      UPLOAD_DIR: ${UPLOAD_DIR:-/app/uploads}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
     ports:
       - "8000:8000"
     volumes:
