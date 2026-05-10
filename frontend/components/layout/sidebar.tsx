@@ -25,7 +25,8 @@ const items = [
   { href: "/transactions", label: "Movimientos", icon: CreditCard },
   { href: "/income", label: "Ingresos", icon: Wallet },
   { href: "/expenses", label: "Gastos", icon: TrendingDown },
-  { href: "/categories", label: "Categorias", icon: FolderTree },
+  { href: "/categories", label: "Categorias de gastos", icon: FolderTree },
+  { href: "/income-categories", label: "Categorias de ingresos", icon: FolderTree },
   { href: "/settings", label: "Configuracion", icon: Settings }
 ];
 

@@ -65,6 +65,7 @@ class Category(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(String(80), nullable=False)
     color: Mapped[str | None] = mapped_column(String(20))
     is_system: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
 
 class UploadedFile(Base, TimestampMixin):
@@ -139,15 +140,29 @@ class ManualExpense(Base, TimestampMixin):
     expense_type: Mapped[str] = mapped_column(String(20), default="variable", nullable=False)
 
 
+class IncomeCategory(Base, TimestampMixin):
+    __tablename__ = "income_categories"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
+    color: Mapped[str | None] = mapped_column(String(20))
+    is_system: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+
 class ManualIncome(Base, TimestampMixin):
     __tablename__ = "manual_income"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
     income_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    income_category_id: Mapped[int] = mapped_column(ForeignKey("income_categories.id"), index=True, nullable=False)
     description: Mapped[str] = mapped_column(String(255), nullable=False)
     amount: Mapped[Decimal] = mapped_column(DECIMAL(14, 2), nullable=False)
+    income_type: Mapped[str] = mapped_column(String(20), default="variable", nullable=False)
     notes: Mapped[str | None] = mapped_column(Text)
+
+    income_category: Mapped[IncomeCategory] = relationship()
 
 
 class ClassificationRule(Base, TimestampMixin):

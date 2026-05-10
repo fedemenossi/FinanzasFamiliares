@@ -11,7 +11,8 @@ const titles: Record<string, string> = {
   "/transactions": "Movimientos",
   "/income": "Ingresos",
   "/expenses": "Gastos manuales",
-  "/categories": "Categorias",
+  "/categories": "Categorias de gastos",
+  "/income-categories": "Categorias de ingresos",
   "/settings": "Configuracion"
 };
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@/services/api";
-import type { Budget, Category, DashboardSummary, Insight, ManualExpense, ManualIncome, Transaction } from "@/types/api";
+import type { Budget, Category, DashboardSummary, IncomeCategory, Insight, ManualExpense, ManualIncome, Transaction } from "@/types/api";
 
 export async function getDashboard() {
   const { data } = await api.get<DashboardSummary>("/dashboard/summary");
@@ -18,10 +18,18 @@ export async function getCategories() {
   return data;
 }
 
-export async function createCategory(name: string) {
-  // Backend actual todavia no expone POST /categories. Se deja preparado para cuando exista.
-  const { data } = await api.post<Category>("/categories", { name });
+export async function createCategory(name: string, color?: string) {
+  const { data } = await api.post<Category>("/categories", { name, color });
   return data;
+}
+
+export async function updateCategory(id: number, payload: { name?: string; color?: string; is_active?: boolean }) {
+  const { data } = await api.patch<Category>(`/categories/${id}`, payload);
+  return data;
+}
+
+export async function deleteCategory(id: number) {
+  await api.delete(`/categories/${id}`);
 }
 
 export async function getTransactions(query?: string) {
@@ -53,7 +61,33 @@ export async function getIncome() {
   return data;
 }
 
-export async function createIncome(payload: { income_date: string; description: string; amount: number; notes?: string }) {
+export async function getIncomeCategories() {
+  const { data } = await api.get<IncomeCategory[]>("/manual/income-categories");
+  return data;
+}
+
+export async function createIncomeCategory(payload: { name: string; color?: string }) {
+  const { data } = await api.post<IncomeCategory>("/manual/income-categories", payload);
+  return data;
+}
+
+export async function updateIncomeCategory(id: number, payload: { name?: string; color?: string; is_active?: boolean }) {
+  const { data } = await api.patch<IncomeCategory>(`/manual/income-categories/${id}`, payload);
+  return data;
+}
+
+export async function deleteIncomeCategory(id: number) {
+  await api.delete(`/manual/income-categories/${id}`);
+}
+
+export async function createIncome(payload: {
+  income_date: string;
+  income_category_id: number;
+  description: string;
+  amount: number;
+  income_type: "fixed" | "variable";
+  notes?: string;
+}) {
   const { data } = await api.post<ManualIncome>("/manual/income", payload);
   return data;
 }

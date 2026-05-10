@@ -8,6 +8,7 @@ export type Category = {
   id: number;
   name: string;
   color?: string | null;
+  is_active?: boolean;
 };
 
 export type Transaction = {
@@ -31,9 +32,19 @@ export type Transaction = {
 export type ManualIncome = {
   id: number;
   income_date: string;
+  income_category_id: number;
+  income_category?: IncomeCategory | null;
   description: string;
   amount: string | number;
+  income_type: "fixed" | "variable" | string;
   notes?: string | null;
+};
+
+export type IncomeCategory = {
+  id: number;
+  name: string;
+  color?: string | null;
+  is_active?: boolean;
 };
 
 export type ManualExpense = {

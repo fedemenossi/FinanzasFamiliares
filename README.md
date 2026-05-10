@@ -22,6 +22,8 @@ Aplicacion fintech familiar para procesar resumenes bancarios argentinos, clasif
 - Clasificacion automatica por reglas.
 - Gastos fijos, variables y excepcionales.
 - Registro manual de ingresos y gastos.
+- Categorizacion y tipificacion de ingresos.
+- ABM de categorias de gastos e ingresos con baja logica.
 - Panel de movimientos con busqueda y reclasificacion.
 - Presupuestos mensuales por categoria.
 - Insights automaticos.
@@ -203,8 +205,15 @@ El frontend consume las rutas reales actuales del backend:
 - `GET /api/v1/transactions`
 - `PATCH /api/v1/transactions/:id`
 - `GET /api/v1/categories`
+- `POST /api/v1/categories`
+- `PATCH /api/v1/categories/:id`
+- `DELETE /api/v1/categories/:id`
 - `GET /api/v1/manual/income`
 - `POST /api/v1/manual/income`
+- `GET /api/v1/manual/income-categories`
+- `POST /api/v1/manual/income-categories`
+- `PATCH /api/v1/manual/income-categories/:id`
+- `DELETE /api/v1/manual/income-categories/:id`
 - `GET /api/v1/manual/expenses`
 - `POST /api/v1/manual/expenses`
 - `GET /api/v1/dashboard/summary`
@@ -215,7 +224,6 @@ El frontend consume las rutas reales actuales del backend:
 Pendientes para completar CRUD total:
 
 - `DELETE /transactions/:id`
-- `POST /categories`
 - `PATCH /income/:id`
 - `DELETE /income/:id`
 - `PATCH /expenses/:id`

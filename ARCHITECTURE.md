@@ -168,6 +168,32 @@ Los presupuestos se comparan contra:
 - Movimientos importados en `transactions`.
 - Gastos manuales en `manual_expenses`.
 
+## Ingresos
+
+Los ingresos manuales mantienen una logica equivalente a los gastos:
+
+- `manual_income.income_category_id`: FK obligatoria a `income_categories`.
+- `manual_income.income_type`: valor controlado `fixed` o `variable`.
+
+Categorias de ingreso del sistema:
+
+- Ingresos Lau
+- Sueldo Fede
+- Fondo Fede
+- PEF Fede
+- Comisiones
+- Bonos
+- Aguinaldo
+
+## Categorias
+
+Existen dos administradores separados en el frontend:
+
+- `/categories`: categorias de gastos.
+- `/income-categories`: categorias de ingresos.
+
+Ambos tienen alta, modificacion y baja. La baja es logica mediante `is_active = false` para conservar consistencia historica: movimientos, gastos o ingresos existentes siguen apuntando a su categoria original aunque ya no aparezca como opcion activa para nuevas cargas.
+
 ## Modelo de datos
 
 Tablas principales:
@@ -179,6 +205,7 @@ Tablas principales:
 - `transactions`
 - `manual_expenses`
 - `manual_income`
+- `income_categories`
 - `uploaded_files`
 - `statement_summaries`
 - `classification_rules`

@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, EmailStr
 
@@ -27,8 +28,20 @@ class CategoryOut(BaseModel):
     id: int
     name: str
     color: str | None = None
+    is_active: bool = True
 
     model_config = {"from_attributes": True}
+
+
+class CategoryCreate(BaseModel):
+    name: str
+    color: str | None = None
+
+
+class CategoryUpdate(BaseModel):
+    name: str | None = None
+    color: str | None = None
+    is_active: bool | None = None
 
 
 class TransactionOut(BaseModel):
@@ -68,9 +81,31 @@ class ManualExpenseCreate(BaseModel):
 
 class ManualIncomeCreate(BaseModel):
     income_date: datetime
+    income_category_id: int
     description: str
     amount: Decimal
+    income_type: Literal["fixed", "variable"] = "variable"
     notes: str | None = None
+
+
+class IncomeCategoryOut(BaseModel):
+    id: int
+    name: str
+    color: str | None = None
+    is_active: bool = True
+
+    model_config = {"from_attributes": True}
+
+
+class IncomeCategoryCreate(BaseModel):
+    name: str
+    color: str | None = None
+
+
+class IncomeCategoryUpdate(BaseModel):
+    name: str | None = None
+    color: str | None = None
+    is_active: bool | None = None
 
 
 class ManualExpenseOut(ManualExpenseCreate):
@@ -80,6 +115,7 @@ class ManualExpenseOut(ManualExpenseCreate):
 
 class ManualIncomeOut(ManualIncomeCreate):
     id: int
+    income_category: IncomeCategoryOut | None = None
     model_config = {"from_attributes": True}
 
 
