@@ -5,5 +5,11 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
-uploads/
+/uploads/
+backend/uploads/
 .streamlit/secrets.toml
+node_modules/
+.next/
+out/
+.env.local
+*.tsbuildinfo
