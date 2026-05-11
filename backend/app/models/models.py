@@ -10,6 +10,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    JSON,
     String,
     Text,
     UniqueConstraint,
@@ -94,6 +95,22 @@ class StatementSummary(Base, TimestampMixin):
     previous_balance: Mapped[Decimal | None] = mapped_column(DECIMAL(14, 2))
     current_balance: Mapped[Decimal | None] = mapped_column(DECIMAL(14, 2))
     minimum_payment: Mapped[Decimal | None] = mapped_column(DECIMAL(14, 2))
+
+
+class PdfAIAnalysis(Base, TimestampMixin):
+    __tablename__ = "pdf_ai_analyses"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
+    uploaded_file_id: Mapped[int] = mapped_column(ForeignKey("uploaded_files.id"), unique=True, index=True, nullable=False)
+    model: Mapped[str | None] = mapped_column(String(80))
+    status: Mapped[str] = mapped_column(String(40), default="pending", nullable=False)
+    summary: Mapped[str | None] = mapped_column(Text)
+    insights: Mapped[list | None] = mapped_column(JSON)
+    category_suggestions: Mapped[list | None] = mapped_column(JSON)
+    anomalies: Mapped[list | None] = mapped_column(JSON)
+    raw_response: Mapped[dict | None] = mapped_column(JSON)
+    error_message: Mapped[str | None] = mapped_column(Text)
 
 
 class Transaction(Base):

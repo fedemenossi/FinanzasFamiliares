@@ -1,10 +1,31 @@
 "use client";
 
 import { api } from "@/services/api";
-import type { Budget, Category, DashboardSummary, IncomeCategory, Insight, ManualExpense, ManualIncome, Transaction, UploadedFile, UploadResult } from "@/types/api";
+import type {
+  Budget,
+  CashflowReport,
+  CashflowReportFilters,
+  Category,
+  DashboardSummary,
+  IncomeCategory,
+  Insight,
+  ManualExpense,
+  ManualIncome,
+  Transaction,
+  UploadedFile,
+  UploadResult
+} from "@/types/api";
 
 export async function getDashboard() {
   const { data } = await api.get<DashboardSummary>("/dashboard/summary");
+  return data;
+}
+
+export async function getCashflowReport(filters: CashflowReportFilters) {
+  const params = Object.fromEntries(
+    Object.entries(filters).filter(([, value]) => value !== undefined && value !== null && value !== "")
+  );
+  const { data } = await api.get<CashflowReport>("/reports/cashflow", { params });
   return data;
 }
 

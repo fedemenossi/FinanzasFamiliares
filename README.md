@@ -8,7 +8,7 @@ Aplicacion fintech familiar para procesar resumenes bancarios argentinos, clasif
 - Base de datos: MySQL 8.
 - Driver MySQL: `pymysql`.
 - PDFs: `pdfplumber` y `PyMuPDF`.
-- IA futura: OpenAI API mediante `OPENAI_API_KEY`.
+- IA: OpenAI API para analisis automatico de PDFs mediante `OPENAI_API_KEY`.
 - Frontend: Next.js App Router, React, TypeScript, TailwindCSS, shadcn/ui compatible y Recharts.
 - Deploy: Railway.
 
@@ -16,6 +16,7 @@ Aplicacion fintech familiar para procesar resumenes bancarios argentinos, clasif
 
 - Registro, login y autenticacion JWT.
 - Dashboard financiero con KPIs y graficos.
+- Pantalla de consultas con ingresos y gastos agrupados por mes o año.
 - Subida de PDFs bancarios.
 - Deteccion de BBVA Visa Platinum, Banco Nacion Visa Signature o parser generico.
 - Extraccion de movimientos, importes argentinos y cuotas.
@@ -27,6 +28,7 @@ Aplicacion fintech familiar para procesar resumenes bancarios argentinos, clasif
 - Panel de movimientos con busqueda y reclasificacion.
 - Presupuestos mensuales por categoria.
 - Insights automaticos.
+- Analisis IA de cada PDF subido con resumen, hallazgos, sugerencias de categoria y anomalias.
 - Deduplicacion basica al reimportar movimientos.
 
 ## Estructura
@@ -106,6 +108,7 @@ SECRET_KEY=una-clave-larga
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
 UPLOAD_DIR=uploads
 OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4o-mini
 CORS_ORIGINS=*
 ```
 
@@ -135,6 +138,7 @@ UPLOAD_DIR=/app/uploads
 CORS_ORIGINS=*
 MYSQL_URL=${{MySQL.MYSQL_URL}}
 OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4o-mini
 ```
 
 El backend ejecuta automaticamente:
@@ -190,9 +194,11 @@ En Railway, `alembic upgrade head` corre en cada arranque del backend.
 2. Ingresar en `/login`.
 3. Registrar ingresos.
 4. Subir PDFs bancarios.
-5. Revisar y reclasificar movimientos.
-6. Cargar presupuestos por categoria.
-7. Analizar dashboard e insights.
+5. Revisar el analisis IA generado para el PDF.
+6. Consultar ingresos y gastos por mes, año, categoria, tipo, origen o fecha exacta.
+7. Revisar y reclasificar movimientos.
+8. Cargar presupuestos por categoria.
+9. Analizar dashboard e insights.
 
 ## Estado de endpoints
 
@@ -218,6 +224,7 @@ El frontend consume las rutas reales actuales del backend:
 - `GET /api/v1/manual/expenses`
 - `POST /api/v1/manual/expenses`
 - `GET /api/v1/dashboard/summary`
+- `GET /api/v1/reports/cashflow`
 - `GET /api/v1/insights`
 - `GET /api/v1/budgets`
 - `POST /api/v1/budgets`
@@ -239,6 +246,7 @@ La pantalla `/uploads` muestra:
 - Cantidad de movimientos extraidos.
 - Cantidad de movimientos nuevos.
 - Cantidad de duplicados.
+- Analisis IA del PDF cuando `OPENAI_API_KEY` esta configurada.
 - Historial de PDFs procesados.
 
 Si el PDF queda en 0 movimientos nuevos puede significar:
@@ -252,5 +260,28 @@ En logs del backend buscar:
 - `pdf_upload_started`
 - `pdf_parser_detected`
 - `pdf_parsed`
+- `openai_analysis_started`
+- `openai_analysis_completed`
+- `openai_analysis_failed`
 - `pdf_upload_completed`
 - `pdf_upload_failed`
+
+## Analisis con OpenAI
+
+Al subir un PDF, el backend ejecuta este flujo:
+
+1. Guarda el archivo.
+2. Detecta parser y extrae movimientos.
+3. Clasifica cada movimiento con reglas locales.
+4. Persiste archivo, resumen y movimientos.
+5. Envia a OpenAI un JSON con banco, saldos, categorias disponibles y movimientos parseados.
+6. Guarda la respuesta en `pdf_ai_analyses`.
+
+La IA devuelve:
+
+- Resumen del resumen bancario.
+- Insights accionables.
+- Sugerencias de categoria y tipo de gasto.
+- Posibles anomalias.
+
+Si `OPENAI_API_KEY` no esta configurada, el PDF se procesa igual y el analisis queda en estado `skipped`.

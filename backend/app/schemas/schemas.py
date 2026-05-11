@@ -76,6 +76,21 @@ class UploadedFileOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class PdfAIAnalysisOut(BaseModel):
+    id: int
+    uploaded_file_id: int
+    model: str | None = None
+    status: str
+    summary: str | None = None
+    insights: list[dict] | None = None
+    category_suggestions: list[dict] | None = None
+    anomalies: list[dict] | None = None
+    error_message: str | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class UploadResult(BaseModel):
     uploaded_file: UploadedFileOut
     parser_name: str
@@ -88,6 +103,7 @@ class UploadResult(BaseModel):
     diagnostic_lines: list[str] = []
     candidate_lines: list[str] = []
     transactions: list[TransactionOut]
+    ai_analysis: PdfAIAnalysisOut | None = None
     message: str
 
 
@@ -182,3 +198,53 @@ class InsightOut(BaseModel):
     title: str
     detail: str
     metric: float | None = None
+
+
+class FinancialQueryRow(BaseModel):
+    id: int
+    kind: Literal["income", "expense"]
+    source: Literal["pdf", "manual"]
+    date: datetime
+    period: str
+    description: str
+    category_id: int | None = None
+    category: str
+    flow_type: str
+    amount: Decimal
+    signed_amount: Decimal
+    bank_name: str | None = None
+    card_type: str | None = None
+
+
+class FinancialQuerySummary(BaseModel):
+    income: Decimal
+    expenses: Decimal
+    savings: Decimal
+    savings_rate: float
+    row_count: int
+
+
+class FinancialQueryGroup(BaseModel):
+    key: str
+    label: str
+    income: Decimal = Decimal("0")
+    expenses: Decimal = Decimal("0")
+    savings: Decimal = Decimal("0")
+    count: int = 0
+
+
+class FinancialQueryBreakdown(BaseModel):
+    key: str
+    label: str
+    kind: Literal["income", "expense"]
+    amount: Decimal
+    count: int
+
+
+class FinancialQueryResult(BaseModel):
+    summary: FinancialQuerySummary
+    group_by: Literal["month", "year"]
+    groups: list[FinancialQueryGroup]
+    by_category: list[FinancialQueryBreakdown]
+    by_type: list[FinancialQueryBreakdown]
+    rows: list[FinancialQueryRow]

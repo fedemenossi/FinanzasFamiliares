@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 const titles: Record<string, string> = {
   "/dashboard": "Dashboard financiero",
   "/uploads": "Subida de PDFs",
+  "/consultas": "Consultas",
   "/transactions": "Movimientos",
   "/income": "Ingresos",
   "/expenses": "Gastos manuales",

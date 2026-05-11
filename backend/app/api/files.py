@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session, joinedload
 from app.api.deps import get_current_user
 from app.core.config import get_settings
 from app.db.session import get_db
-from app.models import StatementSummary, Transaction, UploadedFile, User
+from app.models import PdfAIAnalysis, StatementSummary, Transaction, UploadedFile, User
+from app.ai.classifier import AIClassifier
 from app.parsers.base_parser import normalize_description
 from app.parsers.parser_factory import ParserFactory
 from app.schemas import TransactionOut, UploadedFileOut, UploadResult
@@ -80,9 +81,24 @@ async def upload_statement(
         )
 
         created: list[Transaction] = []
+        classified_for_ai: list[dict] = []
         duplicate_count = 0
         for parsed in statement.transactions:
             normalized = normalize_description(parsed.raw_description)
+            classification = classify(normalized, parsed.is_installment)
+            classified_for_ai.append(
+                {
+                    "date": parsed.transaction_date.date().isoformat(),
+                    "description": normalized,
+                    "amount": float(parsed.amount),
+                    "currency": parsed.currency,
+                    "is_installment": parsed.is_installment,
+                    "installment_current": parsed.installment_current,
+                    "installment_total": parsed.installment_total,
+                    "rule_category": classification.category_name,
+                    "rule_expense_type": classification.expense_type,
+                }
+            )
             duplicate = db.scalar(
                 select(Transaction.id).where(
                     Transaction.user_id == current_user.id,
@@ -97,7 +113,6 @@ async def upload_statement(
                 duplicate_count += 1
                 continue
 
-            classification = classify(normalized, parsed.is_installment)
             category = get_category_by_name(db, current_user.id, classification.category_name)
             transaction = Transaction(
                 user_id=current_user.id,
@@ -131,6 +146,8 @@ async def upload_statement(
             .where(Transaction.id.in_([transaction.id for transaction in created]))
             .order_by(Transaction.transaction_date.desc(), Transaction.id.desc())
         ).all() if created else []
+
+        ai_analysis = run_ai_analysis(db, current_user.id, uploaded.id, statement, classified_for_ai)
         logger.info(
             "pdf_upload_completed uploaded_file_id=%s extracted_count=%s created_count=%s duplicate_count=%s",
             uploaded.id,
@@ -157,6 +174,7 @@ async def upload_statement(
             diagnostic_lines=statement.diagnostic_lines,
             candidate_lines=statement.candidate_lines,
             transactions=created_with_categories,
+            ai_analysis=ai_analysis,
             message=message,
         )
     except Exception as exc:
@@ -175,3 +193,60 @@ def list_uploaded_files(db: Session = Depends(get_db), current_user: User = Depe
         .order_by(UploadedFile.created_at.desc())
         .limit(50)
     ).all()
+
+
+def run_ai_analysis(
+    db: Session,
+    user_id: int,
+    uploaded_file_id: int,
+    statement,
+    classified_for_ai: list[dict],
+) -> PdfAIAnalysis | None:
+    analysis = PdfAIAnalysis(
+        user_id=user_id,
+        uploaded_file_id=uploaded_file_id,
+        model=get_settings().openai_model,
+        status="skipped",
+        error_message=None,
+    )
+    db.add(analysis)
+    db.commit()
+    db.refresh(analysis)
+
+    ai = AIClassifier()
+    if not ai.enabled:
+        analysis.status = "skipped"
+        analysis.error_message = "OPENAI_API_KEY no configurada"
+        db.commit()
+        db.refresh(analysis)
+        return analysis
+
+    if not classified_for_ai:
+        analysis.status = "skipped"
+        analysis.error_message = "No hay movimientos extraidos para analizar"
+        db.commit()
+        db.refresh(analysis)
+        return analysis
+
+    try:
+        result = ai.analyze_statement(statement, classified_for_ai)
+        if not result:
+            analysis.status = "skipped"
+            analysis.error_message = "OpenAI no devolvio resultado"
+        else:
+            analysis.status = "completed"
+            analysis.summary = result.get("summary")
+            analysis.insights = result.get("insights", [])
+            analysis.category_suggestions = result.get("category_suggestions", [])
+            analysis.anomalies = result.get("anomalies", [])
+            analysis.raw_response = result
+        db.commit()
+        db.refresh(analysis)
+        return analysis
+    except Exception as exc:
+        logger.exception("openai_analysis_failed uploaded_file_id=%s", uploaded_file_id)
+        analysis.status = "error"
+        analysis.error_message = str(exc)
+        db.commit()
+        db.refresh(analysis)
+        return analysis

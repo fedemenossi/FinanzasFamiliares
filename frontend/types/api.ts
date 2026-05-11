@@ -51,7 +51,27 @@ export type UploadResult = {
   diagnostic_lines: string[];
   candidate_lines: string[];
   transactions: Transaction[];
+  ai_analysis?: PdfAIAnalysis | null;
   message: string;
+};
+
+export type PdfAIAnalysis = {
+  id: number;
+  uploaded_file_id: number;
+  model?: string | null;
+  status: "pending" | "skipped" | "completed" | "error" | string;
+  summary?: string | null;
+  insights?: { title: string; detail: string; severity: "info" | "warning" | "critical" | string }[] | null;
+  category_suggestions?: {
+    description: string;
+    suggested_category: string;
+    expense_type: "fixed" | "variable" | "exceptional" | string;
+    confidence: number;
+    reason: string;
+  }[] | null;
+  anomalies?: { description: string; amount: number; reason: string }[] | null;
+  error_message?: string | null;
+  created_at: string;
 };
 
 export type ManualIncome = {
@@ -93,6 +113,57 @@ export type DashboardSummary = {
   top_expenses: { date: string; description: string; amount: number }[];
   frequent_merchants: { merchant: string; count: number }[];
   small_expenses: { description: string; count: number }[];
+};
+
+export type ReportGroupBy = "month" | "year";
+export type ReportRecordType = "all" | "income" | "expense";
+export type ReportSource = "all" | "pdf" | "manual";
+
+export type CashflowReportFilters = {
+  group_by?: ReportGroupBy;
+  record_type?: ReportRecordType;
+  source?: ReportSource;
+  expense_category_id?: number;
+  income_category_id?: number;
+  flow_type?: string;
+  year?: number;
+  month?: number;
+  exact_date?: string;
+  date_from?: string;
+  date_to?: string;
+  q?: string;
+  limit?: number;
+};
+
+export type CashflowReportRow = {
+  id: number;
+  kind: "income" | "expense";
+  source: "pdf" | "manual";
+  date: string;
+  period: string;
+  description: string;
+  category_id?: number | null;
+  category: string;
+  flow_type: string;
+  amount: string | number;
+  signed_amount: string | number;
+  bank_name?: string | null;
+  card_type?: string | null;
+};
+
+export type CashflowReport = {
+  summary: {
+    income: string | number;
+    expenses: string | number;
+    savings: string | number;
+    savings_rate: number;
+    row_count: number;
+  };
+  group_by: ReportGroupBy;
+  groups: { key: string; label: string; income: string | number; expenses: string | number; savings: string | number; count: number }[];
+  by_category: { key: string; label: string; kind: "income" | "expense"; amount: string | number; count: number }[];
+  by_type: { key: string; label: string; kind: "income" | "expense"; amount: string | number; count: number }[];
+  rows: CashflowReportRow[];
 };
 
 export type Insight = {

@@ -82,6 +82,8 @@ export default function UploadsPage() {
         </div>
       ) : null}
 
+      {result?.ai_analysis ? <AIAnalysisCard analysis={result.ai_analysis} /> : null}
+
       {result && result.extracted_count === 0 ? (
         <Card>
           <CardHeader>
@@ -132,6 +134,53 @@ export default function UploadsPage() {
           {history.length ? <UploadsHistory rows={history} /> : <EmptyState title="Sin PDFs cargados" description="Aca se mostraran los ultimos archivos procesados." />}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function AIAnalysisCard({ analysis }: { analysis: NonNullable<UploadResult["ai_analysis"]> }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Analisis IA</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div className="flex flex-wrap gap-2 text-sm">
+          <span className="rounded-md bg-slate-100 px-2 py-1 text-slate-700">Estado: {analysis.status}</span>
+          {analysis.model ? <span className="rounded-md bg-slate-100 px-2 py-1 text-slate-700">Modelo: {analysis.model}</span> : null}
+        </div>
+        {analysis.status === "completed" ? (
+          <>
+            {analysis.summary ? <p className="text-sm leading-6 text-slate-700">{analysis.summary}</p> : null}
+            <AIList title="Insights" rows={(analysis.insights || []).map((item) => `${item.title}: ${item.detail}`)} />
+            <AIList
+              title="Sugerencias de clasificacion"
+              rows={(analysis.category_suggestions || []).map(
+                (item) => `${item.description} -> ${item.suggested_category} (${item.expense_type}, ${(item.confidence * 100).toFixed(0)}%): ${item.reason}`
+              )}
+            />
+            <AIList title="Anomalias" rows={(analysis.anomalies || []).map((item) => `${item.description} (${formatCurrency(item.amount)}): ${item.reason}`)} />
+          </>
+        ) : (
+          <p className="text-sm text-slate-500">{analysis.error_message || "El analisis IA no se ejecuto para este PDF."}</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function AIList({ title, rows }: { title: string; rows: string[] }) {
+  if (!rows.length) return null;
+  return (
+    <div>
+      <p className="mb-2 text-sm font-medium text-slate-950">{title}</p>
+      <ul className="space-y-2">
+        {rows.map((row) => (
+          <li key={row} className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm leading-6 text-slate-600">
+            {row}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

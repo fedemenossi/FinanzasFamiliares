@@ -11,6 +11,7 @@ import {
   LogOut,
   ReceiptText,
   Settings,
+  Search,
   TrendingDown,
   Wallet
 } from "lucide-react";
@@ -22,6 +23,7 @@ import { useAuth } from "@/hooks/use-auth";
 const items = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
   { href: "/uploads", label: "PDFs", icon: FileUp },
+  { href: "/consultas", label: "Consultas", icon: Search },
   { href: "/transactions", label: "Movimientos", icon: CreditCard },
   { href: "/income", label: "Ingresos", icon: Wallet },
   { href: "/expenses", label: "Gastos", icon: TrendingDown },

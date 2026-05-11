@@ -19,7 +19,7 @@ Modulos principales:
 - `app/schemas`: contratos Pydantic.
 - `app/parsers`: arquitectura extensible de parsers bancarios.
 - `app/services`: reglas de clasificacion y bootstrap de categorias.
-- `app/ai`: punto de extension para clasificacion con OpenAI.
+- `app/ai`: integracion con OpenAI para analizar PDFs ya parseados.
 
 Routers actuales:
 
@@ -29,6 +29,7 @@ Routers actuales:
 - `transactions`
 - `manual`
 - `dashboard`
+- `reports`
 - `budgets`
 - `insights`
 
@@ -55,6 +56,7 @@ frontend/
     login/
     register/
     dashboard/
+    consultas/
     uploads/
     transactions/
     income/
@@ -96,7 +98,9 @@ frontend/
 6. El clasificador por reglas asigna categoria y tipo de gasto.
 7. Se persisten `uploaded_files`, `statement_summaries` y `transactions`.
 8. La importacion evita duplicados por usuario, fecha, descripcion, importe, banco y tipo de tarjeta.
-9. El frontend muestra los movimientos extraidos.
+9. El backend ejecuta el analisis IA con OpenAI si `OPENAI_API_KEY` esta configurada.
+10. Se persiste el resultado en `pdf_ai_analyses`.
+11. El frontend muestra los movimientos extraidos y el analisis IA.
 
 El backend registra eventos de diagnostico:
 
@@ -107,6 +111,8 @@ El backend registra eventos de diagnostico:
 - `pdf_upload_failed`
 
 La respuesta de `POST /api/v1/files/upload` incluye metricas de procesamiento: parser, banco, movimientos extraidos, movimientos nuevos y duplicados. `GET /api/v1/files` devuelve el historial de archivos del usuario.
+
+Cuando la IA esta habilitada, la misma respuesta incluye `ai_analysis` con estado, modelo, resumen, insights, sugerencias de categoria y anomalias. Si falta `OPENAI_API_KEY` o el PDF no tiene movimientos, el registro queda en estado `skipped`.
 
 ## Parsers
 
@@ -141,6 +147,26 @@ Ejemplos:
 
 La tabla `classification_rules` queda preparada para reglas por usuario.
 
+## IA con OpenAI
+
+`app/ai/classifier.py` contiene `AIClassifier`, que usa el SDK oficial de OpenAI.
+
+La IA no recibe el binario del PDF. Recibe un JSON normalizado con:
+
+- Banco y tipo de tarjeta.
+- Saldos detectados por el parser.
+- Categorias disponibles del sistema.
+- Movimientos extraidos y clasificados por reglas.
+
+El objetivo de esta capa es explicar el resumen y detectar oportunidades:
+
+- Resumen financiero del PDF.
+- Insights accionables.
+- Sugerencias de categoria y tipo de gasto.
+- Anomalias o movimientos que merecen revision.
+
+La salida se exige como JSON estructurado y se guarda en `pdf_ai_analyses`. El modelo se configura con `OPENAI_MODEL`, por defecto `gpt-4o-mini`.
+
 ## Dashboard e insights
 
 `GET /api/v1/dashboard/summary` consolida:
@@ -168,6 +194,25 @@ Devuelve:
 - Carga fija alta respecto de ingresos.
 - Presupuestos al 80% o excedidos.
 - Gastos hormiga por comercios repetidos.
+
+## Consultas
+
+`GET /api/v1/reports/cashflow` entrega una vista unificada de ingresos y gastos.
+
+Soporta filtros por:
+
+- Agrupacion mensual o anual.
+- Tipo de registro: ingresos, gastos o ambos.
+- Origen: PDF o carga manual.
+- Categoria de gasto.
+- Categoria de ingreso.
+- Tipo: fijo, variable o excepcional.
+- Año, mes, fecha exacta o rango de fechas.
+- Texto en descripcion o categoria.
+
+Los gastos importados desde PDFs usan `transactions.transaction_date`, que corresponde a la fecha de consumo extraida del resumen. Los gastos manuales usan `manual_expenses.expense_date` y los ingresos usan `manual_income.income_date`.
+
+La pantalla `/consultas` consume este endpoint y muestra KPIs, graficos por periodo, categorias principales y tabla de detalle.
 
 ## Presupuestos
 
@@ -218,21 +263,11 @@ Tablas principales:
 - `income_categories`
 - `uploaded_files`
 - `statement_summaries`
+- `pdf_ai_analyses`
 - `classification_rules`
 - `budgets`
 
 `transactions` conserva datos crudos y normalizados para permitir auditoria y reclasificacion sin perder el texto original del resumen.
-
-## IA futura
-
-`app/ai/classifier.py` define un placeholder para integrar OpenAI, por ejemplo con GPT-4o-mini.
-
-Estrategia prevista:
-
-1. Reglas exactas para comercios conocidos.
-2. Reglas del usuario.
-3. IA para comercios ambiguos.
-4. Confirmacion o correccion manual para mejorar reglas futuras.
 
 ## Deploy
 
@@ -244,7 +279,7 @@ Railway usa servicios separados:
 
 Variables clave:
 
-- Backend: `MYSQL_URL`, `SECRET_KEY`, `UPLOAD_DIR`, `OPENAI_API_KEY`.
+- Backend: `MYSQL_URL`, `SECRET_KEY`, `UPLOAD_DIR`, `OPENAI_API_KEY`, `OPENAI_MODEL`.
 - Frontend: `NEXT_PUBLIC_API_URL`.
 
 ## Escalabilidad
